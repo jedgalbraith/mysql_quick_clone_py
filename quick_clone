@@ -1,0 +1,170 @@
+#!/usr/bin/env python -B
+# code: utf-8
+# python2
+
+import argparse, sys, os
+
+import export_db
+import import_db
+
+VERSION = "0.0.1"
+
+parser = argparse.ArgumentParser(
+    prog="quick_clone",
+    usage="quick_clone [sub-command] [options]",
+    description="Quickly clone a database to another",
+    epilog="Delorum"
+)
+
+parser.add_argument(
+    "-v",
+    "--version",
+    help="Returns version and exits",
+    action="version",
+    version="quick_clone " + VERSION
+)
+
+# create subcommands
+sub_commands = parser.add_subparsers(
+    title="Sub Commands",
+    metavar=""
+)
+
+parser_export = sub_commands.add_parser(
+    "export",
+    usage="quick_clone export [options]",
+    help="",
+    epilog=""
+)
+
+parser_import = sub_commands.add_parser(
+    "import",
+    usage="quick_clone import [options]",
+    help="",
+    epilog=""
+)
+
+# -h, --host
+parser_export.add_argument(
+    "-H",
+    "--host",
+    dest="host",
+    help="db host",
+    metavar="HOST",
+    default="127.0.0.1"
+)
+# -u, --user
+parser_export.add_argument(
+    "-u",
+    "--user",
+    dest="user",
+    help="db user",
+    metavar="USER",
+    default="root"
+)
+# -p, --password
+parser_export.add_argument(
+    "-p",
+    "--pass",
+    dest="password",
+    help="db pass",
+    metavar="PASS",
+    required=True
+)
+# -P, --port
+parser_export.add_argument(
+    "-P",
+    "--port",
+    dest="port",
+    help="db port",
+    metavar="PORT",
+    default=3306,
+    type=int
+)
+# -d, --database
+parser_export.add_argument(
+    "-d",
+    "--database",
+    dest="database",
+    help="db name",
+    metavar="DATABASE",
+    required=True
+)
+# -f, --file_location
+parser_export.add_argument(
+    "-f",
+    "--file",
+    dest="file_location",
+    help="db file desination",
+    metavar="FILE",
+    default=os.getcwd()
+)
+
+
+# -h, --host
+parser_import.add_argument(
+    "-H",
+    "--host",
+    dest="host",
+    help="db host",
+    metavar="HOST",
+    default="127.0.0.1"
+)
+# -u, --user
+parser_import.add_argument(
+    "-u",
+    "--user",
+    dest="user",
+    help="db user",
+    metavar="USER",
+    default="root"
+)
+# -p, --password
+parser_import.add_argument(
+    "-p",
+    "--pass",
+    dest="password",
+    help="db pass",
+    metavar="PASS",
+    required=True
+)
+# -P, --port
+parser_import.add_argument(
+    "-P",
+    "--port",
+    dest="port",
+    help="db port",
+    metavar="PORT",
+    default=3306,
+    type=int
+)
+# -d, --database
+parser_import.add_argument(
+    "-d",
+    "--database",
+    dest="database",
+    help="db name",
+    metavar="DATABASE",
+    required=True
+)
+# -f, --file_location
+parser_import.add_argument(
+    "-f",
+    "--file",
+    dest="file_location",
+    help="db file desination",
+    metavar="FILE",
+    default=os.getcwd()
+)
+
+def main():
+    args = parser.parse_args()
+    if sys.argv[1] == "export":
+        export_db.execute(args.host, args.user, args.password, args.port, args.database, args.file_location)
+    elif sys.argv[1] == "import":
+        import_db.execute(args.host, args.user, args.password, args.port, args.database, args.file_location)
+    else:
+        pass
+
+if __name__ == '__main__':
+    main()
