@@ -4,8 +4,8 @@
 
 import argparse, sys, os
 
-import export_db
-import import_db
+import quick_clone.export_db
+import quick_clone.import_db
 
 VERSION = "0.0.1"
 
@@ -100,8 +100,7 @@ parser_export.add_argument(
     default=os.getcwd()
 )
 
-
-# -h, --host
+# IMPORT
 parser_import.add_argument(
     "-H",
     "--host",
@@ -110,7 +109,7 @@ parser_import.add_argument(
     metavar="HOST",
     default="127.0.0.1"
 )
-# -u, --user
+
 parser_import.add_argument(
     "-u",
     "--user",
@@ -119,7 +118,7 @@ parser_import.add_argument(
     metavar="USER",
     default="root"
 )
-# -p, --password
+
 parser_import.add_argument(
     "-p",
     "--pass",
@@ -128,7 +127,7 @@ parser_import.add_argument(
     metavar="PASS",
     required=True
 )
-# -P, --port
+
 parser_import.add_argument(
     "-P",
     "--port",
@@ -138,7 +137,7 @@ parser_import.add_argument(
     default=3306,
     type=int
 )
-# -d, --database
+
 parser_import.add_argument(
     "-d",
     "--database",
@@ -147,14 +146,14 @@ parser_import.add_argument(
     metavar="DATABASE",
     required=True
 )
-# -f, --file_location
+
 parser_import.add_argument(
-    "-f",
-    "--file",
-    dest="file_location",
+    "-a",
+    "--archive",
+    dest="archive_location",
     help="db file desination",
     metavar="FILE",
-    default=os.getcwd()
+    required=True
 )
 
 def main():
@@ -162,7 +161,7 @@ def main():
     if sys.argv[1] == "export":
         export_db.execute(args.host, args.user, args.password, args.port, args.database, args.file_location)
     elif sys.argv[1] == "import":
-        import_db.execute(args.host, args.user, args.password, args.port, args.database, args.file_location)
+        import_db.execute(args.host, args.user, args.password, args.port, args.database, args.archive_location)
     else:
         pass
 
