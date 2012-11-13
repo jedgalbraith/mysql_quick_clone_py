@@ -3,7 +3,7 @@
 
 import mysql.connector, os, tarfile, shutil
 
-def execute(host, user, password, port, database, file_location):
+def execute(user, password, host, port, database, file_location):
 
     if file_location[-1:] != "/":
         file_location += "/"
@@ -82,7 +82,6 @@ def get_table_names(cursor):
     return table_list
 
 def create_schema_file(cursor, database, table_name, file_location):
-
     # query for show table sql
     cursor.execute("SHOW CREATE TABLE " + table_name)
     # fetch result
@@ -91,17 +90,15 @@ def create_schema_file(cursor, database, table_name, file_location):
     show_create = show_create_result[0][1]
 
     # create a file that contains the sql
-    file_schema = open(file_location + database + '/' + table_name + '/file_schema.sql', 'w')
+    file_schema = open(file_location + database + '/' + table_name + '/schema.sql', 'w')
     file_schema.write(show_create)
     file_schema.close()
 
 def create_data_file(cursor, database, table_name, file_location):
-    # create a file containing the checksum of the table dump
     cursor.execute("SELECT * FROM " + table_name + " INTO OUTFILE '" + file_location + database + '/' + table_name + "/data'")
 
+# create a file containing the checksum of the table dump
 def create_checksum_file(cursor, database, table_name, file_location):
-    # CHECKSUM FILE
-    # create a file containing the checksum of the table dump
     cursor.execute("CHECKSUM TABLE " + table_name)
     # fetch result
     checksum_result = cursor.fetchall()

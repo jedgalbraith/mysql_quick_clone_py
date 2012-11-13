@@ -12,66 +12,58 @@ VERSION = "0.0.1"
 parser = argparse.ArgumentParser(
     prog="quick_clone",
     usage="quick_clone [sub-command] [options]",
-    description="Quickly clone a database to another",
-    epilog="Delorum"
-)
+    description="Quickly clone a database to another. Modified rollback",
+    epilog="Delorum")
 
 parser.add_argument(
     "-v",
     "--version",
     help="Returns version and exits",
     action="version",
-    version="quick_clone " + VERSION
-)
+    version="quick_clone " + VERSION)
 
-# create subcommands
+# SUBCOMMANDS
 sub_commands = parser.add_subparsers(
     title="Sub Commands",
-    metavar=""
-)
+    metavar="")
 
 parser_export = sub_commands.add_parser(
     "export",
     usage="quick_clone export [options]",
     help="",
-    epilog=""
-)
+    epilog="")
 
 parser_import = sub_commands.add_parser(
     "import",
     usage="quick_clone import [options]",
     help="",
-    epilog=""
-)
+    epilog="")
 
-# -h, --host
-parser_export.add_argument(
-    "-H",
-    "--host",
-    dest="host",
-    help="db host",
-    metavar="HOST",
-    default="127.0.0.1"
-)
-# -u, --user
+# EXPORT OPTIONS
 parser_export.add_argument(
     "-u",
     "--user",
     dest="user",
     help="db user",
     metavar="USER",
-    default="root"
-)
-# -p, --password
+    default="root")
+
 parser_export.add_argument(
     "-p",
     "--pass",
     dest="password",
     help="db pass",
     metavar="PASS",
-    required=True
-)
-# -P, --port
+    required=True)
+
+parser_export.add_argument(
+    "-H",
+    "--host",
+    dest="host",
+    help="db host",
+    metavar="HOST",
+    default="127.0.0.1")
+
 parser_export.add_argument(
     "-P",
     "--port",
@@ -79,45 +71,32 @@ parser_export.add_argument(
     help="db port",
     metavar="PORT",
     default=3306,
-    type=int
-)
-# -d, --database
+    type=int)
+
 parser_export.add_argument(
     "-d",
     "--database",
     dest="database",
     help="db name",
     metavar="DATABASE",
-    required=True
-)
-# -f, --file_location
+    required=True)
+
 parser_export.add_argument(
     "-f",
     "--file",
     dest="file_location",
     help="db file desination",
     metavar="FILE",
-    default=os.getcwd()
-)
+    default=os.getcwd())
 
-# IMPORT
-parser_import.add_argument(
-    "-H",
-    "--host",
-    dest="host",
-    help="db host",
-    metavar="HOST",
-    default="127.0.0.1"
-)
-
+# IMPORT OPTIONS
 parser_import.add_argument(
     "-u",
     "--user",
     dest="user",
     help="db user",
     metavar="USER",
-    default="root"
-)
+    default="root")
 
 parser_import.add_argument(
     "-p",
@@ -125,8 +104,15 @@ parser_import.add_argument(
     dest="password",
     help="db pass",
     metavar="PASS",
-    required=True
-)
+    required=True)
+
+parser_import.add_argument(
+    "-H",
+    "--host",
+    dest="host",
+    help="db host",
+    metavar="HOST",
+    default="127.0.0.1")
 
 parser_import.add_argument(
     "-P",
@@ -135,8 +121,7 @@ parser_import.add_argument(
     help="db port",
     metavar="PORT",
     default=3306,
-    type=int
-)
+    type=int)
 
 parser_import.add_argument(
     "-d",
@@ -144,24 +129,22 @@ parser_import.add_argument(
     dest="database",
     help="db name",
     metavar="DATABASE",
-    required=True
-)
+    required=True)
 
 parser_import.add_argument(
     "-a",
     "--archive",
     dest="archive_location",
-    help="db file desination",
+    help="relative or absolute location of exported archive file",
     metavar="FILE",
-    required=True
-)
+    required=True)
 
 def main():
     args = parser.parse_args()
     if sys.argv[1] == "export":
-        export_db.execute(args.host, args.user, args.password, args.port, args.database, args.file_location)
+        quick_clone.export_db.execute(args.user, args.password, args.host,  args.port, args.database, args.file_location)
     elif sys.argv[1] == "import":
-        import_db.execute(args.host, args.user, args.password, args.port, args.database, args.archive_location)
+        quick_clone.import_db.execute(args.user, args.password, args.host,  args.port, args.database, args.archive_location)
     else:
         pass
 
