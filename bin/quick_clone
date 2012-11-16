@@ -12,13 +12,13 @@ VERSION = "0.0.1"
 parser = argparse.ArgumentParser(
     prog="quick_clone",
     usage="quick_clone [sub-command] [options]",
-    description="Quickly clone a database to another. Modified rollback",
+    description="Quickly clone database via MySQL INTO OUTFILE & LOAD DATA INFILE commands",
     epilog="Delorum")
 
 parser.add_argument(
     "-v",
     "--version",
-    help="Returns version and exits",
+    help="Returns version",
     action="version",
     version="quick_clone " + VERSION)
 
@@ -44,7 +44,7 @@ parser_export.add_argument(
     "-u",
     "--user",
     dest="user",
-    help="db user",
+    help="Database Username. Defaults to 'root'.",
     metavar="USER",
     default="root")
 
@@ -52,7 +52,7 @@ parser_export.add_argument(
     "-p",
     "--pass",
     dest="password",
-    help="db pass",
+    help="Database Password.",
     metavar="PASS",
     required=True)
 
@@ -60,7 +60,7 @@ parser_export.add_argument(
     "-H",
     "--host",
     dest="host",
-    help="db host",
+    help="Datbase Host. Defaults to '127.0.0.1'",
     metavar="HOST",
     default="127.0.0.1")
 
@@ -68,7 +68,7 @@ parser_export.add_argument(
     "-P",
     "--port",
     dest="port",
-    help="db port",
+    help="Datbase Host. Defaults to 3306",
     metavar="PORT",
     default=3306,
     type=int)
@@ -77,24 +77,31 @@ parser_export.add_argument(
     "-d",
     "--database",
     dest="database",
-    help="db name",
+    help="Database Name",
     metavar="DATABASE",
     required=True)
 
 parser_export.add_argument(
-    "-f",
-    "--file",
-    dest="file_location",
-    help="db file desination",
+    "-l",
+    "--location",
+    dest="loc",
+    help="Preferred directory for export to be placed in. File name will be database name. Defaults to current directory.",
     metavar="FILE",
     default=os.getcwd())
+
+parser_export.add_argument(
+    "-t",
+    "--tables",
+    dest="tables",
+    help="Limit tables exported. Comma separated list. Defaults to all tables",
+    metavar="TABLE")
 
 # IMPORT OPTIONS
 parser_import.add_argument(
     "-u",
     "--user",
     dest="user",
-    help="db user",
+    help="Database Username. Defaults to 'root'.",
     metavar="USER",
     default="root")
 
@@ -102,7 +109,7 @@ parser_import.add_argument(
     "-p",
     "--pass",
     dest="password",
-    help="db pass",
+    help="Database Password.",
     metavar="PASS",
     required=True)
 
@@ -110,7 +117,7 @@ parser_import.add_argument(
     "-H",
     "--host",
     dest="host",
-    help="db host",
+    help="Datbase Host. Defaults to '127.0.0.1'",
     metavar="HOST",
     default="127.0.0.1")
 
@@ -118,7 +125,7 @@ parser_import.add_argument(
     "-P",
     "--port",
     dest="port",
-    help="db port",
+    help="Datbase Host. Defaults to 3306",
     metavar="PORT",
     default=3306,
     type=int)
@@ -127,24 +134,25 @@ parser_import.add_argument(
     "-d",
     "--database",
     dest="database",
-    help="db name",
+    help="Database Name",
     metavar="DATABASE",
     required=True)
 
+# we need file name since database names are most likely different
 parser_import.add_argument(
     "-a",
     "--archive",
-    dest="archive_location",
-    help="relative or absolute location of exported archive file",
+    dest="archive",
+    help="Relative or absolute path of archive/file to import.",
     metavar="FILE",
     required=True)
 
 def main():
     args = parser.parse_args()
     if sys.argv[1] == "export":
-        quick_clone.export_db.execute(args.user, args.password, args.host,  args.port, args.database, args.file_location)
+        quick_clone.export_db.execute(args.user, args.password, args.host,  args.port, args.database, args.loc)
     elif sys.argv[1] == "import":
-        quick_clone.import_db.execute(args.user, args.password, args.host,  args.port, args.database, args.archive_location)
+        quick_clone.import_db.execute(args.user, args.password, args.host,  args.port, args.database, args.archive)
     else:
         pass
 

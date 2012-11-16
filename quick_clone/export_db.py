@@ -19,6 +19,7 @@ def execute(user, password, host, port, database, file_location):
             host        = host,
             database    = database
         )
+    # print "STATUS: Database connection successful..."
 
     except:
         print "ERROR: Could not connect to database"

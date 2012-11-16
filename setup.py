@@ -11,7 +11,7 @@ setup(
     author='Jed Galbraith',
     author_email='jed@delorum.com',
     # license='LICENSE.txt',
-    description='quick clone db',
+    description='Quickly clone database via MySQL INTO OUTFILE & LOAD DATA INFILE commands',
     requires=[
         "argparse",
         "mysql"
