@@ -5,13 +5,17 @@
 
 import mysql.connector, os, tarfile, shutil, quick_clone.util as util
 
-def execute(user, password, host, port, database, archive):
+def execute(user, password, host, port, database, file, fk):
     
-    # extract archive
-    tar = util.extract_tar(archive)
+    # extract file
+    tar = util.extract_tar(file)
+
+    # get name of dir, which is name of database
+    extracted_dir = os.path.realpath(tar.getnames()[0])
+    tar.close()
     
-    # get list of table names from archive
-    table_names = get_table_names(tar)
+    # get list of table names from file
+    table_names = get_table_names(extracted_dir)
 
     # connect to database
     cnx = util.connect_db(user, password, host, port, database)
@@ -35,14 +39,17 @@ def execute(user, password, host, port, database, archive):
     # drop original tables
     drop_tables(cursor, table_names)
 
-    # add foreign key constraints back in
-    add_fk(cursor, extracted_dir, table_names)
+    if fk == True:
+        # add foreign key constraints back in
+        add_fk(cursor, extracted_dir, table_names)
+    else:
+        print "Skipping adding foreign key checks back in..."
     
-    # rename _clone tables & FK to original name
-    rename_tables(cursor, extracted_dir, table_name)
+    # rename _clone tables
+    rename_tables(cursor, table_names)
     
     # enable checks
-    util.mysql_checks(1)
+    util.mysql_checks(cursor, 1)
 
     cursor.close()
     cnx.commit()
@@ -53,16 +60,15 @@ def execute(user, password, host, port, database, archive):
 
     # remove extracted directory
     shutil.rmtree(extracted_dir, ignore_errors=True)
+    print "Quick Clone import successful!"
 
-def get_table_names(tar):
-    extracted_dir = os.path.realpath(tar.getnames()[0])
+def get_table_names(extracted_dir):
     table_names = os.listdir(extracted_dir)
-    tar.close()
     return table_names
 
 def import_cloned_tables(cnx, cursor, extracted_dir, table_names):
 
-    print "STATUS: Importing cloned tables..."
+    print "Importing cloned tables..."
     for table_name in table_names:
         try:
             # create empty table
@@ -76,48 +82,70 @@ def import_cloned_tables(cnx, cursor, extracted_dir, table_names):
         except mysql.connector.Error as err:
             print "ERROR: Failed to execute SQL command: " + err.msg
             cnx.rollback()
-            drop_tables(cursor, "_clone")
+            # drop_tables(cursor, "_clone")
             quit(1)
         # except:
         #     print "ERROR: Something went really wrong"
         #     quit(1)
-    print "STATUS: Import successful..."
+    print "Import successful..."
 
 def create_clone_table(cursor, extracted_dir, table_name):
     # remove foreign key constraints
     with open(extracted_dir + '/' + table_name + "/schema.sql", "r") as create_sql_f:
-        for line in create_sql_f:
-            if not line.startswith("  CONSTRAINT"):
-                create_sql_str += line + "\r\n"
+        lines = create_sql_f.readlines()
+
+        # loop multiple times due to indicies changing after list items removed
+        constr_found = True
+        while constr_found:
+            for line in lines:
+                if line.startswith("  CONSTRAINT "):
+                    # get index of previous line
+                    line_prev_index = lines.index(line) - 1
+                    # get previous line
+                    line_prev = lines[line_prev_index]
+                    # strip comma from previous line
+                    lines[line_prev_index] = line_prev.replace(",\n", "\n")
+                    # remove constraint line
+                    del lines[lines.index(line)]
+                    constr_found = True
+                    # since a constraint was found, start over checking again
+                    break
+
+                constr_found = False
+
+    # convert sql back into string
+    create_sql_str = ""
+    for line in lines:
+        create_sql_str += line
 
     # rename table to include _clone
     create_sql = create_sql_str.replace("`" + table_name + "`", "`" + table_name + "_clone`")
-    # create table with _tmp
+    # create _clone table
     cursor.execute(create_sql)
 
-def drop_tables(cursor, tables):
-    if isinstance(tables, basestring):
-        print "STATUS: Dropping " + like + " tables..."
-        cursor.execute("SHOW TABLES LIKE '%" + like +"'")
+def drop_tables(cursor, table_names):
+    if isinstance(table_names, basestring):
+        print "Dropping " + table_names + " tables..."
+        cursor.execute("SHOW TABLES LIKE '%" + table_names +"'")
         remove_tables = cursor.fetchall()
         if remove_tables != []:
             for remove_table in remove_tables:
                 cursor.execute("DROP TABLE " + remove_table[0])
-            print "STATUS: " + like + " tables removed..."
+            print "STATUS: " + table_names + " tables removed..."
     else:
-        print "STATUS: Removing original tables..."
+        print "Removing original tables..."
         for table_name in table_names:
             cursor.execute("DROP TABLE IF EXISTS " + table_name)
-        print "STATUS: Remove successful..."
+        print "Remove successful..."
 
 def verify_checksums(cursor, extracted_dir, table_names):
-    print "STATUS: Verifying checksums..."
+    print "Verifying checksums..."
     for table_name in table_names:
         if not verify_checksum(cursor, extracted_dir, table_name):
             print "checksums didn't match for table: " + table_name
             drop_tables(cursor, "_clone")
             quit(1)
-    print "STATUS: Verification successful..."
+    print "Verification successful..."
     
 def verify_checksum(cursor, extracted_dir, table_name):
     # get checksum for source
@@ -143,37 +171,35 @@ def verify_checksum(cursor, extracted_dir, table_name):
     else:
         return False
 
-def rename_tables(cursor, extracted_dir, table_names):
+def rename_tables(cursor, table_names):
 
-    print "STATUS: Renaming _clone tables to original names..."
+    print "Renaming _clone tables to original names..."
     for table_name in table_names:
         # ensure table exists
         cursor.execute("SHOW TABLES LIKE '" + table_name + "_clone'")
         if cursor.fetchall() != []:
             cursor.execute("RENAME TABLE " + table_name + "_clone TO " + table_name)
 
-            fk_sql = get_fk_sql(extracted_dir, table_name)
-            if fk_sql != "":
-                # drop current FK
-                cursor.execute("ALTER TABLE " + table_name + " DROP FOREIGN KEY FK_" + table_name)
-                # add properly named FK
-                cursor.execute("ALTER TABLE " + table_name + " ADD " + fk_sql)
-    print "STATUS: Rename successful..."
+    print "Rename successful..."
 
 def add_fk(cursor, extracted_dir, table_names):
 
+    print "Adding FK constraints back in..."
     for table_name in table_names:
         # open schema file
         with open(extracted_dir + '/' + table_name + "/schema.sql", "r") as create_sql_f:
-            # extract constraint sql
+            # only collect fk constraints
             create_sql_list = []
             for line in create_sql_f:
                 if line.startswith("  CONSTRAINT"):
-                    line = line.lstrip("  ")
+                    line = line.lstrip()
                     line = line.rstrip("\n")
+                    line = line.rstrip(",")
                     create_sql_list += [line]
 
         for create_sql in create_sql_list:
             # run alter table sql
-            create_sql = "ALTER TABLE " + table_name + " ADD FOREIGN KEY " + create_sql
+            create_sql = "ALTER TABLE " + table_name + "_clone ADD " + create_sql
             cursor.execute(create_sql)
+
+    print "Add FK constraints successful..."

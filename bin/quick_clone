@@ -2,17 +2,30 @@
 # code: utf-8
 # python2
 
-import argparse, sys, os
+# TODO create example config import 
+
+import argparse, sys, os, ConfigParser
 
 import quick_clone.export_db
 import quick_clone.import_db
 
 VERSION = "0.0.1"
 
+#default values
+cwd = os.getcwd()
+options = {
+    "user"            : "root"
+    , "host"          : "127.0.0.1"
+    , "port"          : 3306
+    , "dir"           : cwd
+    , "tables"        : None
+    , "fk"            : True
+}
+
 parser = argparse.ArgumentParser(
     prog="quick_clone",
     usage="quick_clone [sub-command] [options]",
-    description="Quickly clone database via MySQL INTO OUTFILE & LOAD DATA INFILE commands",
+    description="Quickly clone a MySQL database via INTO OUTFILE & LOAD DATA INFILE vs mysqldump.",
     epilog="Delorum")
 
 parser.add_argument(
@@ -30,13 +43,37 @@ sub_commands = parser.add_subparsers(
 parser_export = sub_commands.add_parser(
     "export",
     usage="quick_clone export [options]",
-    help="",
+    help="Export database using command line to pass arguments.",
+    epilog="")
+
+parser_export_config = sub_commands.add_parser(
+    "export_config",
+    usage="quick_clone export_config -c \'path/to/config.cfg\'",
+    help="Export database using a config file to pass arguments.",
+    epilog="")
+
+parser_export_config_example = sub_commands.add_parser(
+    "export_config_eg",
+    usage="quick_clone export_config_eg",
+    help="Create example export config file in the current directory",
     epilog="")
 
 parser_import = sub_commands.add_parser(
     "import",
     usage="quick_clone import [options]",
-    help="",
+    help="Import file using command line to pass arguments.",
+    epilog="")
+
+parser_import_config = sub_commands.add_parser(
+    "import_config",
+    usage="quick_clone export_config -c \'path/to/config.cfg\'",
+    help="Import database using config file to pass arguments.",
+    epilog="")
+
+parser_import_config_example = sub_commands.add_parser(
+    "import_config_eg",
+    usage="quick_clone import_config_example",
+    help="Create example import config file in the current directory",
     epilog="")
 
 # EXPORT OPTIONS
@@ -44,57 +81,66 @@ parser_export.add_argument(
     "-u",
     "--user",
     dest="user",
-    help="Database Username. Defaults to 'root'.",
-    metavar="USER",
-    default="root")
+    help="Database username. Defaults to 'root'.",
+    metavar="USERNAME",
+    default=options["user"])
 
 parser_export.add_argument(
     "-p",
     "--pass",
     dest="password",
-    help="Database Password.",
-    metavar="PASS",
+    help="* Database password.",
+    metavar="PASSWORD",
     required=True)
 
 parser_export.add_argument(
     "-H",
     "--host",
     dest="host",
-    help="Datbase Host. Defaults to '127.0.0.1'",
+    help="Database Host. Defaults to '127.0.0.1'",
     metavar="HOST",
-    default="127.0.0.1")
+    default=options["host"])
 
 parser_export.add_argument(
     "-P",
     "--port",
     dest="port",
-    help="Datbase Host. Defaults to 3306",
+    help="Database Host. Defaults to 3306",
     metavar="PORT",
-    default=3306,
-    type=int)
+    type=int,
+    default=options["port"])
 
 parser_export.add_argument(
     "-d",
     "--database",
     dest="database",
-    help="Database Name",
+    help="* Database Name",
     metavar="DATABASE",
     required=True)
 
 parser_export.add_argument(
-    "-l",
-    "--location",
-    dest="loc",
+    "-D",
+    "--dir",
+    dest="dir",
     help="Preferred directory for export to be placed in. File name will be database name. Defaults to current directory.",
-    metavar="FILE",
-    default=os.getcwd())
+    metavar="DIR",
+    default=options["dir"])
 
 parser_export.add_argument(
     "-t",
     "--tables",
     dest="tables",
-    help="Limit tables exported. Comma separated list. Defaults to all tables",
-    metavar="TABLE")
+    help="Limit tables exported. Comma separated list(e.g. table_1,table_2,table_3). Defaults to all tables.",
+    metavar="TABLES")
+
+# EXPORT CONFIG OPTIONS
+parser_export_config.add_argument(
+    "-c",
+    "--config_file",
+    dest="config",
+    help="Path to config file containing options. Defaults to 'quick_clone_export.cfg'",
+    metavar="PATH",
+    default="quick_clone_export.cfg")
 
 # IMPORT OPTIONS
 parser_import.add_argument(
@@ -102,57 +148,144 @@ parser_import.add_argument(
     "--user",
     dest="user",
     help="Database Username. Defaults to 'root'.",
-    metavar="USER",
-    default="root")
+    metavar="USERNAME",
+    default=options["user"])
 
 parser_import.add_argument(
     "-p",
     "--pass",
     dest="password",
-    help="Database Password.",
-    metavar="PASS",
+    help="* Database Password.",
+    metavar="PASSWORD",
     required=True)
 
 parser_import.add_argument(
     "-H",
     "--host",
     dest="host",
-    help="Datbase Host. Defaults to '127.0.0.1'",
+    help="Database Host. Defaults to '127.0.0.1'",
     metavar="HOST",
-    default="127.0.0.1")
+    default=options["host"])
 
 parser_import.add_argument(
     "-P",
     "--port",
     dest="port",
-    help="Datbase Host. Defaults to 3306",
+    help="Database Host. Defaults to 3306",
     metavar="PORT",
-    default=3306,
-    type=int)
+    type=int,
+    default=options["port"])
 
 parser_import.add_argument(
     "-d",
     "--database",
     dest="database",
-    help="Database Name",
+    help="* Database Name",
     metavar="DATABASE",
     required=True)
 
 # we need file name since database names are most likely different
 parser_import.add_argument(
-    "-a",
-    "--archive",
-    dest="archive",
-    help="Relative or absolute path of archive/file to import.",
-    metavar="FILE",
+    "-f",
+    "--file",
+    dest="file",
+    help="* Relative or absolute path to file created by export.",
+    metavar="PATH",
     required=True)
 
+parser_import.add_argument(
+    "-fk",
+    "--fk",
+    dest="fk",
+    help="Whether foreign key constraints should be recreated. Defaults to True. (Boolean)",
+    metavar="FILE",
+    default=options["fk"])
+
+# IMPORT CONFIG OPTIONS
+parser_import_config.add_argument(
+    "-c",
+    "--config_file",
+    dest="config",
+    help="Relative or absolute path of file to import. Defaults to 'quick_clone_export.cfg'",
+    metavar="PATH",
+    default="quick_clone_import.cfg")
+
 def main():
+
+    # parse arguments from command line
     args = parser.parse_args()
-    if sys.argv[1] == "export":
-        quick_clone.export_db.execute(args.user, args.password, args.host,  args.port, args.database, args.loc)
-    elif sys.argv[1] == "import":
-        quick_clone.import_db.execute(args.user, args.password, args.host,  args.port, args.database, args.archive)
+
+    # prepare options dict from command line
+    if sys.argv[1] == "export" or sys.argv[1] == "import":
+        print "Preparing arguments from command line..."
+        #convert to dictionary
+        args = vars(args)
+        # update options with those from command line
+        for arg, value in args.iteritems():
+            options[arg] = value
+
+    # prepare options dict from config file
+    elif sys.argv[1] == "export_config" or sys.argv[1] == "import_config":
+        print "Preparing arguments from config file..."
+        config_file = ConfigParser.RawConfigParser()
+        # read config file
+        config_file.read(args.config)
+        # get config options from config file
+        configs = config_file.items('Quick Clone')
+        # update options with those from config file
+        for config, value in configs:
+            # get port as integer
+            if config == 'port':
+                options[config] = int(value)
+            # get fk as boolean
+            elif config == 'fk':
+                options[config] = config_file.getboolean('Quick Clone', config)
+            else:
+                options[config] = value
+
+    # send options to export or import script
+    if sys.argv[1] == "export" or sys.argv[1] == "export_config":
+        # remove options that only apply to import
+        del options["fk"]
+        quick_clone.export_db.execute(**options)
+    elif sys.argv[1] == "import" or sys.argv[1] == "import_config":
+        # remove options that only apply to export
+        del options["dir"]
+        del options["tables"]
+        quick_clone.import_db.execute(**options)
+
+    elif sys.argv[1] == "export_config_eg":
+        config = ConfigParser.RawConfigParser()
+
+        config.add_section('Quick Clone')
+        config.set('Quick Clone', 'user     ', 'root')
+        config.set('Quick Clone', 'password ', 'root')
+        config.set('Quick Clone', 'host     ', '127.0.0.1')
+        config.set('Quick Clone', 'port     ', '3306')
+        config.set('Quick Clone', 'database ', 'database_name')
+        config.set('Quick Clone', '# dir    ', '/tmp')
+        config.set('Quick Clone', '# tables ', 'table_1,table_2,table_3')
+
+        with open('quick_clone_export.cfg', 'wb') as configfile:
+            config.write(configfile)
+        print "Config file created at: " + os.getcwd() + "/quick_clone_export.cfg"
+
+    elif sys.argv[1] == "import_config_eg":
+        config = ConfigParser.RawConfigParser()
+
+        config.add_section('Quick Clone')
+        config.set('Quick Clone', 'user     ', 'root')
+        config.set('Quick Clone', 'password ', 'root')
+        config.set('Quick Clone', 'host     ', '127.0.0.1')
+        config.set('Quick Clone', 'port     ', '3306')
+        config.set('Quick Clone', 'database ', 'database_name')
+        config.set('Quick Clone', 'file     ', 'path/to/export/file.tar.gz')
+        config.set('Quick Clone', '# fk       ', 'False')
+
+        with open('quick_clone_import.cfg', 'wb') as configfile:
+            config.write(configfile)
+        print "Config file created at: " + os.getcwd() + "/quick_clone_import.cfg"
+
     else:
         pass
 

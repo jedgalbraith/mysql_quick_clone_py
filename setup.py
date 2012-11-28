@@ -1,9 +1,12 @@
-from distutils.core import setup
+# from distutils.core import setup
+# setup(
+from setuptools import setup, find_packages
 setup(
     name='quick_clone',
     version='0.0.1',
     packages=[
-        'quick_clone'
+        'quick_clone',
+        # find_packages(),
     ],
     scripts=[
         'bin/quick_clone'

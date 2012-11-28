@@ -1,0 +1,10 @@
+setup.py
+bin/quick_clone
+quick_clone/__init__.py
+quick_clone/export_db.py
+quick_clone/import_db.py
+quick_clone/util.py
+quick_clone.egg-info/PKG-INFO
+quick_clone.egg-info/SOURCES.txt
+quick_clone.egg-info/dependency_links.txt
+quick_clone.egg-info/top_level.txt

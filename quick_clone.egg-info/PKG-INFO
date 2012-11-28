@@ -1,0 +1,12 @@
+Metadata-Version: 1.1
+Name: quick-clone
+Version: 0.0.1
+Summary: Quickly clone database via MySQL INTO OUTFILE & LOAD DATA INFILE commands
+Home-page: UNKNOWN
+Author: Jed Galbraith
+Author-email: jed@delorum.com
+License: UNKNOWN
+Description: UNKNOWN
+Platform: UNKNOWN
+Requires: argparse
+Requires: mysql

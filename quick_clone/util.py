@@ -1,38 +1,44 @@
 import mysql.connector, os, tarfile, shutil
+from mysql.connector import errorcode
 
 def connect_db(user, password, host, port, database):
-    print "STATUS: Connecting database..."
+    print "Connecting database..."
     try:
-        # cnx = mysql.connector.connect(user='root', password='root', host='127.0.0.1', database='test-demo-magento')
         cnx = mysql.connector.connect(
-            user        = user,
-            password    = password,
-            host        = host,
-            database    = database,
-            charset     = 'utf8')
+            user     = user,
+            password = password,
+            host     = host,
+            port     = port,
+            database = database,
+            charset  = 'utf8')
 
     except mysql.connector.Error as err:
         if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
-            print("Something is wrong your username or password")
+            print("ERROR: Something is wrong your username or password")
+            quit(1)
         elif err.errno == errorcode.ER_BAD_DB_ERROR:
-            print("Database does not exists")
+            print("ERROR: Database does not exist")
+            quit(1)
         else:
             print(err)
+            quit(1)
+    except:
+        print "something else went wrong"
 
-    print "STATUS: Connection successful..."
+    print "Connection successful..."
     return cnx
 
-def extract_tar(archive):
-    print "STATUS: Extracting archive file..."
+def extract_tar(file):
+    print "Extracting file..."
     try:
-        tar = tarfile.open(archive)
+        tar = tarfile.open(file)
     except:
-        print "Couldn't find import file at :" + archive
+        print "Couldn't find import file at: " + file
         quit(1)
     
     tar.extractall()
-    print "STATUS: Extract successful..."
-    return
+    return tar
+    print "Extract successful..."
 
 def mysql_checks(cursor, switch):
     if switch == 0:
